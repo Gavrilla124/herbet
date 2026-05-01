@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SiAbsen v2.0 — Sistem Absensi Karyawan</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070d1a;
+  --surface: #0f1829;
+  --surface2: #162035;
+  --surface3: #1e2d4a;
+  --border: #243352;
+  --accent: #4f8ef7;
+  --accent2: #22d3a0;
+  --accent3: #f5a623;
+  --danger: #f54b4b;
+  --purple: #a78bfa;
+  --text: #e8f0ff;
+  --text2: #8899bb;
+  --text3: #4a5a7a;
+  --radius: 14px;
+  --shadow: 0 12px 48px rgba(0,0,0,0.5);
+  --sidebar-w: 260px;
+  --transition: .22s cubic-bezier(.4,0,.2,1);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; }
+body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
+
+/* ===== LOGIN ===== */
+#loginPage {
+  display:flex; align-items:center; justify-content:center;
+  min-height:100vh;
+  background: radial-gradient(ellipse 80% 60% at 20% 40%, #0d2244 0%, var(--bg) 70%),
+              radial-gradient(ellipse 50% 40% at 80% 80%, #071528 0%, transparent 70%);
+}
+.login-wrap { width:100%; max-width:440px; padding:24px; }
+.login-box {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:48px 40px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(79,142,247,.08);
+  position:relative; overflow:hidden;
+}
+.login-box::before {
+  content:'';
+  position:absolute; top:-80px; right:-60px;
+  width:200px; height:200px;
+  background: radial-gradient(circle, rgba(79,142,247,.12) 0%, transparent 70%);
+  pointer-events:none;
+}
+.login-logo { text-align:center; margin-bottom:36px; }
+.login-logo .logo-icon {
+  width:64px; height:64px; margin:0 auto 16px;
+  background:linear-gradient(135deg,#4f8ef7,#22d3a0);
+  border-radius:18px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px;
+  box-shadow: 0 8px 24px rgba(79,142,247,.35);
+}
+.login-logo h1 { font-size:26px; font-weight:800; letter-spacing:-.5px; color:var(--text); }
+.login-logo h1 span { color:var(--accent); }
+.login-logo p { color:var(--text2); font-size:13px; margin-top:6px; }
+.fg { margin-bottom:18px; }
+.fg label { display:block; font-size:11px; font-weight:700; color:var(--text2); letter-spacing:.8px; text-transform:uppercase; margin-bottom:8px; }
+.fg input {
+  width:100%; padding:14px 16px;
+  background:var(--surface2); border:1.5px solid var(--border);
+  border-radius:10px; color:var(--text); font-size:14px; font-family:inherit;
+  transition:border-color var(--transition), box-shadow var(--transition);
+}
+.fg input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,142,247,.15); }
+.btn-login {
+  width:100%; padding:15px; margin-top:8px;
+  background:linear-gradient(135deg,#4f8ef7,#2563eb);
+  border:none; border-radius:12px; color:#fff;
+  font-size:15px; font-weight:700; font-family:inherit; cursor:pointer;
+  transition:transform var(--transition), box-shadow var(--transition);
+  letter-spacing:.3px;
+}
+.btn-login:hover { transform:translateY(-2px); box-shadow:0 10px 32px rgba(79,142,247,.45); }
+.btn-login:active { transform:translateY(0); }
+.login-hint { text-align:center; color:var(--text3); font-size:12px; margin-top:20px; }
+
+/* ===== APP LAYOUT ===== */
+#app { display:none; }
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  position:fixed; left:0; top:0; bottom:0;
+  width:var(--sidebar-w);
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  z-index:200;
+  transition:transform var(--transition), width var(--transition);
+  overflow:hidden;
+}
+.sidebar.collapsed { transform:translateX(calc(-1 * var(--sidebar-w))); }
+
+.sidebar-overlay {
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.6);
+  z-index:199;
+  backdrop-filter:blur(2px);
+}
+.sidebar-overlay.show { display:block; }
+
+.sidebar-header {
+  padding:20px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0;
+}
+.sidebar-brand { display:flex; align-items:center; gap:10px; }
+.brand-icon {
+  width:36px; height:36px;
+  background:linear-gradient(135deg,#4f8ef7,#22d3a0);
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
+}
+.brand-text h2 { font-size:16px; font-weight:800; letter-spacing:-.3px; }
+.brand-text h2 span { color:var(--accent); }
+.brand-text p { font-size:10px; color:var(--text3); }
+.btn-sidebar-close {
+  background:none; border:none; color:var(--text2); cursor:pointer;
+  width:30px; height:30px; border-radius:8px; font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  transition:background var(--transition);
+}
+.btn-sidebar-close:hover { background:var(--surface2); }
+
+/* Nama karyawan di paling atas sidebar */
+.sidebar-user-top {
+  padding:16px 18px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:12px;
+  flex-shrink:0;
+  background: linear-gradient(135deg, rgba(79,142,247,.08), rgba(34,211,160,.05));
+}
+.user-av-top {
+  width:44px; height:44px; border-radius:12px;
+  background:linear-gradient(135deg,#4f8ef7,#22d3a0);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:18px; flex-shrink:0;
+  box-shadow: 0 4px 14px rgba(79,142,247,.3);
+}
+.user-top-info { flex:1; min-width:0; }
+.user-top-name {
+  font-size:14px; font-weight:700; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.user-top-role {
+  font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; margin-top:2px;
+}
+.badge-role {
+  padding:3px 8px;
+  border-radius:6px; font-size:10px; font-weight:700; text-transform:uppercase;
+  white-space:nowrap; flex-shrink:0;
+}
+.badge-role.admin { background:rgba(79,142,247,.15); color:var(--accent); }
+.badge-role.superadmin { background:rgba(167,139,250,.15); color:var(--purple); }
+.badge-role.manager { background:rgba(245,166,35,.15); color:var(--accent3); }
+.badge-role.karyawan { background:rgba(34,211,160,.12); color:var(--accent2); }
+
+.nav-scroll { flex:1; overflow-y:auto; padding:10px 10px 0; }
+.nav-section-label {
+  font-size:10px; font-weight:700; color:var(--text3);
+  letter-spacing:1px; text-transform:uppercase;
+  padding:12px 8px 6px;
+}
+.nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:10px; cursor:pointer;
+  color:var(--text2); font-size:13.5px; font-weight:500;
+  margin-bottom:1px; border:none; background:none; width:100%; text-align:left;
+  transition:background var(--transition), color var(--transition);
+  white-space:nowrap;
+}
+.nav-item:hover { background:var(--surface2); color:var(--text); }
+.nav-item.active { background:rgba(79,142,247,.15); color:var(--accent); font-weight:600; }
+.nav-item .ni { font-size:17px; width:22px; text-align:center; flex-shrink:0; }
+
+.sidebar-footer { padding:12px 10px; border-top:1px solid var(--border); flex-shrink:0; }
+.btn-logout {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; width:100%; border-radius:10px;
+  border:none; background:rgba(245,75,75,.1); color:#f87171;
+  cursor:pointer; font-size:13.5px; font-family:inherit; font-weight:500;
+  transition:background var(--transition);
+}
+.btn-logout:hover { background:rgba(245,75,75,.2); }
+
+/* ===== MAIN AREA ===== */
+.main {
+  margin-left:var(--sidebar-w);
+  min-height:100vh;
+  transition:margin-left var(--transition);
+}
+.main.expanded { margin-left:0; }
+
+.topbar {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:14px 28px;
+  display:flex; justify-content:space-between; align-items:center;
+  position:sticky; top:0; z-index:100;
+}
+.topbar-left { display:flex; align-items:center; gap:14px; }
+.btn-toggle {
+  width:36px; height:36px; border-radius:9px;
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text2); cursor:pointer; font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  transition:background var(--transition), color var(--transition);
+  flex-shrink:0;
+}
+.btn-toggle:hover { background:var(--surface3); color:var(--text); }
+.topbar h3 { font-size:17px; font-weight:700; letter-spacing:-.3px; }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+.datetime-badge {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; padding:7px 14px;
+  display:flex; align-items:center; gap:8px;
+}
+.datetime-badge .date-part {
+  font-size:12px; color:var(--text2); font-weight:500;
+  border-right:1px solid var(--border); padding-right:8px;
+}
+.datetime-badge .time-part {
+  font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--accent);
+  letter-spacing:.5px;
+}
+
+.content { padding:28px; }
+
+/* ===== STAT CARDS ===== */
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:28px; }
+@media(max-width:900px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:500px) { .stats-grid { grid-template-columns:1fr 1fr; gap:12px; } }
+.stat-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:22px 20px; position:relative; overflow:hidden;
+}
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--cc,#4f8ef7); }
+.stat-card::after {
+  content:''; position:absolute; top:12px; right:12px;
+  width:52px; height:52px; border-radius:50%;
+  background:var(--cc,#4f8ef7); opacity:.06;
+}
+.stat-icon { font-size:26px; margin-bottom:10px; }
+.stat-value { font-size:30px; font-weight:800; font-family:'JetBrains Mono',monospace; letter-spacing:-1px; }
+.stat-label { color:var(--text2); font-size:12px; margin-top:5px; font-weight:500; }
+.stat-sub { font-size:11px; color:var(--text3); margin-top:6px; }
+
+/* ===== TABLE ===== */
+.tbl-wrap { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.tbl-head {
+  padding:18px 22px; border-bottom:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.tbl-head h4 { font-size:15px; font-weight:700; }
+.tbl-scroll { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; min-width:500px; }
+th {
+  padding:11px 16px; text-align:left;
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text3);
+  background:var(--surface2); border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+td { padding:13px 16px; border-bottom:1px solid rgba(36,51,82,.5); font-size:13.5px; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(255,255,255,.015); }
+.av-cell { display:flex; align-items:center; gap:10px; }
+.av-sm {
+  width:34px; height:34px; border-radius:8px;
+  background:linear-gradient(135deg,#4f8ef7,#22d3a0);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12px; flex-shrink:0; overflow:hidden;
+}
+.av-sm img { width:100%; height:100%; object-fit:cover; }
+.av-name { font-weight:600; font-size:13.5px; }
+.av-sub { font-size:11px; color:var(--text3); }
+
+/* ===== BADGES ===== */
+.badge {
+  display:inline-flex; align-items:center; padding:4px 10px;
+  border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap;
+}
+.badge-hadir { background:rgba(34,211,160,.12); color:#22d3a0; }
+.badge-terlambat { background:rgba(245,166,35,.12); color:#f5a623; }
+.badge-alpha { background:rgba(245,75,75,.12); color:#f54b4b; }
+.badge-izin { background:rgba(79,142,247,.12); color:#4f8ef7; }
+.badge-sakit { background:rgba(167,139,250,.12); color:#a78bfa; }
+.badge-cuti { background:rgba(100,116,139,.12); color:#94a3b8; }
+.badge-aktif { background:rgba(34,211,160,.12); color:#22d3a0; }
+.badge-nonaktif { background:rgba(245,75,75,.12); color:#f54b4b; }
+.badge-pending { background:rgba(245,166,35,.12); color:#f5a623; }
+.badge-superadmin { background:rgba(167,139,250,.15); color:#a78bfa; }
+.badge-admin { background:rgba(79,142,247,.15); color:#4f8ef7; }
+.badge-karyawan { background:rgba(34,211,160,.12); color:#22d3a0; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding:8px 16px; border-radius:8px; border:none; cursor:pointer;
+  font-size:12.5px; font-weight:600; font-family:inherit;
+  display:inline-flex; align-items:center; gap:6px;
+  transition:all var(--transition);
+}
+.btn-blue { background:rgba(79,142,247,.12); color:#4f8ef7; border:1px solid rgba(79,142,247,.25); }
+.btn-blue:hover { background:rgba(79,142,247,.22); }
+.btn-green { background:rgba(34,211,160,.12); color:#22d3a0; border:1px solid rgba(34,211,160,.25); }
+.btn-green:hover { background:rgba(34,211,160,.22); }
+.btn-red { background:rgba(245,75,75,.12); color:#f54b4b; border:1px solid rgba(245,75,75,.25); }
+.btn-red:hover { background:rgba(245,75,75,.22); }
+.btn-solid { background:var(--accent); color:#fff; border:none; }
+.btn-solid:hover { background:#3a7de8; box-shadow:0 4px 18px rgba(79,142,247,.4); }
+.btn-sm { padding:6px 11px; font-size:11.5px; }
+
+/* ===== INPUTS ===== */
+.inp {
+  padding:10px 14px; background:var(--surface2); border:1.5px solid var(--border);
+  border-radius:8px; color:var(--text); font-size:13px; font-family:inherit;
+  transition:border-color var(--transition), box-shadow var(--transition);
+}
+.inp:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,142,247,.12); }
+
+/* ===== MODAL ===== */
+.modal {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.75); z-index:500;
+  align-items:center; justify-content:center;
+  backdrop-filter:blur(4px); padding:16px;
+}
+.modal.show { display:flex; }
+.modal-box {
+  background:var(--surface); border:1px solid var(--border); border-radius:20px;
+  padding:28px 28px 24px; width:100%; max-width:600px;
+  max-height:90vh; overflow-y:auto; box-shadow:var(--shadow);
+}
+.modal-title { font-size:18px; font-weight:700; margin-bottom:22px; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:540px) { .form-grid { grid-template-columns:1fr; } }
+.fc { display:flex; flex-direction:column; gap:6px; }
+.fc.full { grid-column:1/-1; }
+.form-label { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; }
+.form-inp {
+  width:100%; padding:10px 13px;
+  background:var(--surface2); border:1.5px solid var(--border);
+  border-radius:8px; color:var(--text); font-size:13px; font-family:inherit;
+}
+.form-inp:focus { outline:none; border-color:var(--accent); }
+.modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
+
+/* ===== ABSENSI ===== */
+.absen-wrap { max-width:580px; margin:0 auto; }
+.absen-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px;
+}
+.absen-card h3 { font-size:20px; font-weight:700; margin-bottom:6px; }
+.absen-subtitle { color:var(--text2); font-size:13px; margin-bottom:24px; line-height:1.5; }
+
+/* Nama karyawan besar di halaman absen */
+.absen-user-banner {
+  background: linear-gradient(135deg, rgba(79,142,247,.12), rgba(34,211,160,.08));
+  border: 1px solid rgba(79,142,247,.2);
+  border-radius:14px; padding:16px 20px; margin-bottom:20px;
+  display:flex; align-items:center; gap:14px;
+}
+.absen-user-av {
+  width:48px; height:48px; border-radius:13px;
+  background:linear-gradient(135deg,#4f8ef7,#22d3a0);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:20px; flex-shrink:0;
+  box-shadow:0 4px 16px rgba(79,142,247,.3);
+}
+.absen-user-info .absen-user-name {
+  font-size:16px; font-weight:700; color:var(--text);
+}
+.absen-user-info .absen-user-nip {
+  font-size:11px; color:var(--text3); margin-top:2px;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.absen-status {
+  display:flex; align-items:center; gap:14px; padding:18px;
+  background:var(--surface2); border-radius:12px; margin-bottom:20px;
+  border:1px solid var(--border);
+}
+.live-dot {
+  width:11px; height:11px; border-radius:50%; background:var(--accent2);
+  box-shadow:0 0 10px var(--accent2); animation:pls 2s infinite; flex-shrink:0;
+}
+@keyframes pls { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.85)} }
+.absen-time { font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; }
+.absen-date { color:var(--text2); font-size:12px; margin-top:2px; }
+.photo-drop {
+  border:2px dashed var(--border); border-radius:14px; padding:36px 24px;
+  text-align:center; cursor:pointer; transition:all var(--transition); margin-bottom:16px;
+  position:relative; overflow:hidden;
+}
+.photo-drop:hover { border-color:var(--accent); background:rgba(79,142,247,.04); }
+.photo-drop .drop-icon { font-size:40px; margin-bottom:10px; }
+.photo-drop p { color:var(--text2); font-size:13px; }
+.photo-drop p span { color:var(--accent); font-weight:600; }
+.photo-prev { width:100%; height:220px; object-fit:cover; border-radius:10px; display:none; }
+
+/* ===== CHART ===== */
+.chart-bars { display:flex; align-items:flex-end; gap:6px; height:110px; }
+.cb-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; height:100%; justify-content:flex-end; }
+.cb { width:100%; background:linear-gradient(180deg,#4f8ef7,#2563eb); border-radius:5px 5px 0 0; min-height:4px; transition:.5s; }
+.cb-lbl { font-size:10px; color:var(--text3); }
+.cb-val { font-size:11px; color:var(--text2); font-weight:600; }
+
+/* ===== PHOTO VIEWER ===== */
+.photo-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000; align-items:center; justify-content:center; }
+.photo-modal.show { display:flex; }
+.photo-modal img { max-width:92vw; max-height:88vh; border-radius:12px; }
+.pm-close { position:absolute; top:20px; right:20px; background:rgba(255,255,255,.1); border:none; color:#fff; width:42px; height:42px; border-radius:50%; cursor:pointer; font-size:18px; }
+
+/* ===== ALERT ===== */
+.alert { padding:12px 16px; border-radius:10px; font-size:13px; font-weight:500; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.alert-success { background:rgba(34,211,160,.1); border:1px solid rgba(34,211,160,.25); color:#22d3a0; }
+.alert-error { background:rgba(245,75,75,.1); border:1px solid rgba(245,75,75,.25); color:#f54b4b; }
+.alert-info { background:rgba(79,142,247,.1); border:1px solid rgba(79,142,247,.25); color:#4f8ef7; }
+
+/* ===== TABS ===== */
+.tabs { display:flex; gap:3px; background:var(--surface2); border-radius:10px; padding:4px; margin-bottom:22px; flex-wrap:wrap; }
+.tab { padding:8px 18px; border-radius:8px; border:none; background:none; color:var(--text2); cursor:pointer; font-size:13px; font-weight:500; font-family:inherit; transition:all var(--transition); white-space:nowrap; }
+.tab.active { background:var(--surface); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.25); }
+
+/* ===== FOTO THUMB ===== */
+.ft { width:38px; height:38px; border-radius:7px; object-fit:cover; cursor:pointer; border:2px solid var(--border); transition:all var(--transition); }
+.ft:hover { border-color:var(--accent); transform:scale(1.08); }
+.no-ft { width:38px; height:38px; border-radius:7px; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--text3); }
+
+/* ===== UTILS ===== */
+.hidden { display:none !important; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+@media(max-width:900px) { .grid2 { grid-template-columns:1fr; } }
+.flex-gap { display:flex; gap:8px; flex-wrap:wrap; }
+.mono { font-family:'JetBrains Mono',monospace; }
+.divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
+.section-label { font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; padding:8px 0 0; display:flex; align-items:center; gap:6px; }
+.section-label::before { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px) {
+  .sidebar { transform:translateX(calc(-1 * var(--sidebar-w))); }
+  .sidebar.mobile-open { transform:translateX(0); }
+  .main { margin-left:0 !important; }
+  .content { padding:16px; }
+  .topbar { padding:12px 16px; }
+  .tbl-head { flex-direction:column; align-items:flex-start; }
+  .datetime-badge .date-part { display:none; }
+}
+@media(max-width:480px) {
+  .login-box { padding:32px 22px; }
+  .absen-time { font-size:20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginPage">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="logo-icon">🏢</div>
+        <h1>Si<span>Absen</span></h1>
+        <p>Sistem Informasi Absensi Karyawan</p>
+      </div>
+      <div id="loginAlert"></div>
+      <div class="fg">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="Masukkan username" autocomplete="username">
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="Masukkan password" autocomplete="current-password">
+      </div>
+      <button class="btn-login" onclick="doLogin()">Masuk ke Sistem →</button>
+      <p class="login-hint">Default Admin: <strong>admin</strong> / <strong>admin123</strong></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="brand-icon">⬡</div>
+        <div class="brand-text">
+          <h2>Si<span>Absen</span></h2>
+          <p>v2.0 Enterprise</p>
+        </div>
+      </div>
+      <button class="btn-sidebar-close" onclick="toggleSidebar()">✕</button>
+    </div>
+
+    <!-- Nama Karyawan Paling Atas -->
+    <div class="sidebar-user-top">
+      <div class="user-av-top" id="sidebarAv">A</div>
+      <div class="user-top-info">
+        <div class="user-top-name" id="sidebarName">—</div>
+        <div class="user-top-role" id="sidebarRoleLbl">—</div>
+      </div>
+      <span class="badge-role" id="sidebarBadge">—</span>
+    </div>
+
+    <div class="nav-scroll">
+      <!-- Menu untuk admin/manager/superadmin -->
+      <div id="navAdmin">
+        <div class="nav-section-label">Utama</div>
+        <button class="nav-item active" onclick="nav('dashboard')"><span class="ni">📊</span> Dashboard</button>
+        <button class="nav-item" onclick="nav('absensi')"><span class="ni">✅</span> Absensi</button>
+        <button class="nav-item" onclick="nav('rekap')"><span class="ni">📋</span> Rekap Absensi</button>
+        <div class="nav-section-label">Data Master</div>
+        <button class="nav-item" onclick="nav('karyawan')"><span class="ni">👥</span> Karyawan</button>
+        <button class="nav-item" onclick="nav('departemen')"><span class="ni">🏗️</span> Departemen</button>
+        <button class="nav-item admin-only" onclick="nav('users')"><span class="ni">🔑</span> Akun Pengguna</button>
+        <div class="nav-section-label">Laporan</div>
+        <button class="nav-item" onclick="nav('laporan')"><span class="ni">📈</span> Laporan Bulanan</button>
+      </div>
+      <!-- Menu untuk karyawan biasa -->
+      <div id="navKaryawan" class="hidden">
+        <div class="nav-section-label">Menu</div>
+        <button class="nav-item active" onclick="nav('absensi')"><span class="ni">✅</span> Absen</button>
+        <button class="nav-item" onclick="nav('karyawan')"><span class="ni">👤</span> Data Karyawan</button>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()">🚪 Keluar dari Sistem</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="btn-toggle" onclick="toggleSidebar()" title="Toggle menu">☰</button>
+        <h3 id="pageTitle">Dashboard</h3>
+      </div>
+      <div class="topbar-right">
+        <div class="datetime-badge">
+          <span class="date-part" id="dateEl">—</span>
+          <span class="time-part" id="clockEl">00:00:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- === DASHBOARD === -->
+      <div id="pageDashboard">
+        <div class="stats-grid">
+          <div class="stat-card" style="--cc:#4f8ef7"><div class="stat-icon">👥</div><div class="stat-value" id="sTotal">0</div><div class="stat-label">Total Karyawan Aktif</div></div>
+          <div class="stat-card" style="--cc:#22d3a0"><div class="stat-icon">✅</div><div class="stat-value" id="sHadir">0</div><div class="stat-label">Hadir Hari Ini</div><div class="stat-sub" id="sHadirPct"></div></div>
+          <div class="stat-card" style="--cc:#f5a623"><div class="stat-icon">⏰</div><div class="stat-value" id="sTerlambat">0</div><div class="stat-label">Terlambat Hari Ini</div></div>
+          <div class="stat-card" style="--cc:#f54b4b"><div class="stat-icon">❌</div><div class="stat-value" id="sAlpha">0</div><div class="stat-label">Alpha Bulan Ini</div></div>
+        </div>
+        <div class="grid2">
+          <div class="tbl-wrap">
+            <div class="tbl-head">
+              <h4>📅 Absensi Hari Ini</h4>
+            </div>
+            <div class="tbl-scroll">
+              <table><thead><tr><th>Karyawan</th><th>Masuk</th><th>Keluar</th><th>Status</th><th>Foto</th><th class="admin-col">Aksi</th></tr></thead>
+              <tbody id="dashBody"></tbody></table>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <div class="tbl-head"><h4>📊 Kehadiran 7 Hari</h4></div>
+            <div style="padding:22px"><div class="chart-bars" id="chartBars"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === ABSENSI === -->
+      <div id="pageAbsensi" class="hidden">
+        <div class="tabs">
+          <button class="tab active" onclick="tabAbsen('masuk',this)">🟢 Absen Masuk</button>
+          <button class="tab" onclick="tabAbsen('keluar',this)">🔴 Absen Keluar</button>
+          <button class="tab admin-tab hidden" onclick="tabAbsen('manual',this)">✏️ Input Manual</button>
+        </div>
+        <!-- Masuk -->
+        <div id="absenMasuk" class="absen-wrap">
+          <div class="absen-card">
+            <h3>📸 Absen Masuk</h3>
+            <p class="absen-subtitle">Upload foto selfie sebagai bukti kehadiran Anda hari ini</p>
+            <!-- Banner nama karyawan -->
+            <div class="absen-user-banner">
+              <div class="absen-user-av" id="avMasuk">?</div>
+              <div class="absen-user-info">
+                <div class="absen-user-name" id="namaMasuk">—</div>
+                <div class="absen-user-nip" id="nipMasuk">—</div>
+              </div>
+            </div>
+            <!-- Pilih karyawan hanya untuk admin -->
+            <div class="fc admin-field hidden" style="margin-bottom:14px" id="pilihKryMasukWrap">
+              <label class="form-label">Pilih Karyawan</label>
+              <select class="form-inp" id="aMasukKry" onchange="onKryMasukChange()">
+                <option value="">— Pilih Karyawan —</option>
+              </select>
+            </div>
+            <div class="absen-status"><div class="live-dot"></div><div><div class="absen-time" id="ct1">--:--:--</div><div class="absen-date" id="cd1">-</div></div></div>
+            <div id="alertMasuk"></div>
+            <div class="photo-drop" id="dropMasuk" onclick="document.getElementById('fotoMasuk').click()">
+              <div class="drop-icon">📷</div>
+              <p>Klik untuk upload foto<br><span>JPG/PNG, maks 10MB</span></p>
+              <input type="file" id="fotoMasuk" accept="image/*" style="display:none" onchange="previewFoto('fotoMasuk','prevMasuk','dropMasuk')">
+              <img id="prevMasuk" class="photo-prev">
+            </div>
+            <div class="fc" style="margin-bottom:16px"><label class="form-label">Lokasi (opsional)</label><input class="form-inp" id="lokasiMasuk" placeholder="Contoh: Kantor Pusat Lt. 3"></div>
+            <button class="btn btn-solid" style="width:100%;padding:13px;font-size:14px" onclick="submitAbsen('masuk')">✅ Konfirmasi Absen Masuk</button>
+          </div>
+        </div>
+        <!-- Keluar -->
+        <div id="absenKeluar" class="absen-wrap hidden">
+          <div class="absen-card">
+            <h3>🚪 Absen Keluar</h3>
+            <p class="absen-subtitle">Upload foto sebagai bukti selesai bekerja hari ini</p>
+            <!-- Banner nama karyawan -->
+            <div class="absen-user-banner" style="border-color:rgba(245,75,75,.2);background:linear-gradient(135deg,rgba(245,75,75,.08),rgba(245,75,75,.04))">
+              <div class="absen-user-av" id="avKeluar" style="background:linear-gradient(135deg,#f54b4b,#e11d48)">?</div>
+              <div class="absen-user-info">
+                <div class="absen-user-name" id="namaKeluar">—</div>
+                <div class="absen-user-nip" id="nipKeluar">—</div>
+              </div>
+            </div>
+            <!-- Pilih karyawan hanya untuk admin -->
+            <div class="fc admin-field hidden" style="margin-bottom:14px" id="pilihKryKeluarWrap">
+              <label class="form-label">Pilih Karyawan</label>
+              <select class="form-inp" id="aKeluarKry" onchange="onKryKeluarChange()">
+                <option value="">— Pilih Karyawan —</option>
+              </select>
+            </div>
+            <div class="absen-status"><div class="live-dot" style="background:#f54b4b;box-shadow:0 0 10px #f54b4b"></div><div><div class="absen-time" id="ct2">--:--:--</div><div class="absen-date" id="cd2">-</div></div></div>
+            <div id="alertKeluar"></div>
+            <div class="photo-drop" id="dropKeluar" onclick="document.getElementById('fotoKeluar').click()">
+              <div class="drop-icon">📷</div>
+              <p>Klik untuk upload foto<br><span>JPG/PNG, maks 10MB</span></p>
+              <input type="file" id="fotoKeluar" accept="image/*" style="display:none" onchange="previewFoto('fotoKeluar','prevKeluar','dropKeluar')">
+              <img id="prevKeluar" class="photo-prev">
+            </div>
+            <div class="fc" style="margin-bottom:16px"><label class="form-label">Lokasi (opsional)</label><input class="form-inp" id="lokasiKeluar" placeholder="Contoh: Kantor Pusat Lt. 3"></div>
+            <button class="btn btn-red" style="width:100%;padding:13px;font-size:14px;background:#f54b4b;color:#fff;border:none" onclick="submitAbsen('keluar')">🚪 Konfirmasi Absen Keluar</button>
+          </div>
+        </div>
+        <!-- Manual (admin only) -->
+        <div id="absenManual" class="absen-wrap hidden">
+          <div class="absen-card">
+            <h3>✏️ Input Manual</h3>
+            <p class="absen-subtitle">Khusus Admin — untuk koreksi atau input absensi yang tertinggal</p>
+            <div id="alertManual"></div>
+            <div class="form-grid">
+              <div class="fc full"><label class="form-label">Karyawan</label><select class="form-inp" id="mKry"><option value="">— Pilih —</option></select></div>
+              <div class="fc"><label class="form-label">Tanggal</label><input type="date" class="form-inp" id="mTgl"></div>
+              <div class="fc"><label class="form-label">Status</label><select class="form-inp" id="mStatus"><option value="hadir">Hadir</option><option value="terlambat">Terlambat</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpha">Alpha</option><option value="cuti">Cuti</option></select></div>
+              <div class="fc"><label class="form-label">Jam Masuk</label><input type="time" class="form-inp" id="mJamMasuk"></div>
+              <div class="fc"><label class="form-label">Jam Keluar</label><input type="time" class="form-inp" id="mJamKeluar"></div>
+              <div class="fc full"><label class="form-label">Keterangan</label><input class="form-inp" id="mKet" placeholder="Keterangan tambahan..."></div>
+            </div>
+            <button class="btn btn-solid" style="margin-top:18px;width:100%;padding:13px;font-size:14px" onclick="submitManual()">💾 Simpan Absensi Manual</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- === REKAP === -->
+      <div id="pageRekap" class="hidden">
+        <div class="tbl-wrap">
+          <div class="tbl-head">
+            <h4>📋 Rekap Absensi Harian</h4>
+            <div class="flex-gap">
+              <input type="date" class="inp" id="fTgl" style="min-width:auto">
+              <select class="inp" id="fDeptRekap"><option value="">Semua Dept.</option></select>
+              <select class="inp" id="fStatusRekap"><option value="">Semua Status</option><option value="hadir">Hadir</option><option value="terlambat">Terlambat</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpha">Alpha</option></select>
+              <button class="btn btn-blue" onclick="loadRekap()">🔍 Filter</button>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table><thead><tr><th>Karyawan</th><th>Departemen</th><th>Tgl</th><th>Masuk</th><th>Keluar</th><th>Status</th><th>Foto ↑</th><th>Foto ↓</th><th>Aksi</th></tr></thead>
+            <tbody id="rekapBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- === KARYAWAN === -->
+      <div id="pageKaryawan" class="hidden">
+        <div class="tbl-wrap">
+          <div class="tbl-head">
+            <h4>👥 Data Karyawan</h4>
+            <div class="flex-gap">
+              <input type="text" class="inp" placeholder="🔍 Cari nama/NIP..." id="srchKry" style="min-width:180px">
+              <select class="inp" id="fDeptKry"><option value="">Semua Dept.</option></select>
+              <button class="btn btn-blue" onclick="loadKaryawan()">🔍 Cari</button>
+              <button class="btn btn-solid admin-field hidden" onclick="openKryForm()">+ Tambah Karyawan</button>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table><thead><tr><th>Karyawan</th><th>NIP</th><th>Departemen</th><th>Jabatan</th><th>Telp</th><th>Tgl Masuk</th><th>Status</th><th>Akun</th><th class="admin-col">Aksi</th></tr></thead>
+            <tbody id="kryBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- === DEPARTEMEN === -->
+      <div id="pageDepartemen" class="hidden">
+        <div class="tbl-wrap">
+          <div class="tbl-head">
+            <h4>🏗️ Data Departemen</h4>
+            <button class="btn btn-solid" onclick="openDeptForm()">+ Tambah Departemen</button>
+          </div>
+          <div class="tbl-scroll">
+            <table><thead><tr><th>Kode</th><th>Nama Departemen</th><th>Jumlah Karyawan</th><th>Dibuat</th><th>Aksi</th></tr></thead>
+            <tbody id="deptBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- === AKUN PENGGUNA === -->
+      <div id="pageUsers" class="hidden">
+        <div class="tbl-wrap">
+          <div class="tbl-head">
+            <h4>🔑 Manajemen Akun Pengguna</h4>
+            <div class="flex-gap">
+              <button class="btn btn-solid" onclick="openUserForm()">+ Tambah Akun</button>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table><thead><tr><th>Username</th><th>Nama Karyawan</th><th>NIP</th><th>Role</th><th>Login Terakhir</th><th>Dibuat</th><th>Aksi</th></tr></thead>
+            <tbody id="usersBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- === LAPORAN === -->
+      <div id="pageLaporan" class="hidden">
+        <div class="tbl-wrap">
+          <div class="tbl-head">
+            <h4>📈 Laporan Bulanan</h4>
+            <div class="flex-gap">
+              <select class="inp" id="lBulan"><option value="01">Januari</option><option value="02">Februari</option><option value="03">Maret</option><option value="04">April</option><option value="05">Mei</option><option value="06">Juni</option><option value="07">Juli</option><option value="08">Agustus</option><option value="09">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option></select>
+              <input type="number" class="inp" id="lTahun" value="2025" style="width:80px">
+              <button class="btn btn-blue" onclick="loadLaporan()">📊 Tampilkan</button>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table><thead><tr><th>Karyawan</th><th>Departemen</th><th>Hadir</th><th>Terlambat</th><th>Izin</th><th>Sakit</th><th>Alpha</th><th>Cuti</th><th>Total</th></tr></thead>
+            <tbody id="laporanBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL KARYAWAN === -->
+<div class="modal" id="modalKry">
+  <div class="modal-box">
+    <div class="modal-title" id="modalKryTitle">Tambah Karyawan Baru</div>
+    <input type="hidden" id="kryId">
+    <div class="form-grid">
+      <div class="fc"><label class="form-label">NIP *</label><input class="form-inp" id="kNip" placeholder="KRY001"></div>
+      <div class="fc"><label class="form-label">Nama Lengkap *</label><input class="form-inp" id="kNama" placeholder="Nama lengkap"></div>
+      <div class="fc"><label class="form-label">Email</label><input type="email" class="form-inp" id="kEmail"></div>
+      <div class="fc"><label class="form-label">Telepon</label><input class="form-inp" id="kTelp"></div>
+      <div class="fc"><label class="form-label">Jenis Kelamin</label><select class="form-inp" id="kJK"><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
+      <div class="fc"><label class="form-label">Tgl Lahir</label><input type="date" class="form-inp" id="kTglLhr"></div>
+      <div class="fc"><label class="form-label">Departemen</label><select class="form-inp" id="kDept"><option value="">Pilih dept.</option></select></div>
+      <div class="fc"><label class="form-label">Jabatan</label><select class="form-inp" id="kJab"><option value="">Pilih jabatan</option></select></div>
+      <div class="fc"><label class="form-label">Tgl Masuk</label><input type="date" class="form-inp" id="kTglMsk"></div>
+      <div class="fc"><label class="form-label">Status</label><select class="form-inp" id="kSts"><option value="aktif">Aktif</option><option value="nonaktif">Nonaktif</option><option value="cuti">Cuti</option></select></div>
+      <div class="fc full"><label class="form-label">Alamat</label><input class="form-inp" id="kAlamat" placeholder="Alamat lengkap"></div>
+      <div class="fc full"><label class="form-label">Foto Profil</label><input type="file" class="form-inp" id="kFoto" accept="image/*" style="padding:7px"></div>
+    </div>
+    <div style="margin-top:18px">
+      <div class="section-label">Akun Login Karyawan</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Isi Username & Password agar karyawan bisa login dengan akun sendiri</p>
+      <div class="form-grid">
+        <div class="fc"><label class="form-label">Username Login</label><input class="form-inp" id="kUsername" placeholder="username karyawan"></div>
+        <div class="fc"><label class="form-label">Password</label><input type="password" class="form-inp" id="kPassword" placeholder="min. 6 karakter"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" onclick="closeM('modalKry')">Batal</button>
+      <button class="btn btn-solid" onclick="saveKry()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL DEPARTEMEN === -->
+<div class="modal" id="modalDept">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-title" id="modalDeptTitle">Tambah Departemen</div>
+    <input type="hidden" id="deptId">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="fc"><label class="form-label">Kode Departemen *</label><input class="form-inp" id="dKode" placeholder="TI, SDM, dll" style="text-transform:uppercase"></div>
+      <div class="fc"><label class="form-label">Nama Departemen *</label><input class="form-inp" id="dNama" placeholder="Nama departemen"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" onclick="closeM('modalDept')">Batal</button>
+      <button class="btn btn-solid" onclick="saveDept()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL USER/AKUN === -->
+<div class="modal" id="modalUser">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-title" id="modalUserTitle">Tambah Akun Pengguna</div>
+    <input type="hidden" id="userId">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="fc"><label class="form-label">Username *</label><input class="form-inp" id="uUsername" placeholder="username unik"></div>
+      <div class="fc"><label class="form-label">Password *</label><input type="password" class="form-inp" id="uPassword" placeholder="min. 6 karakter"></div>
+      <div class="fc"><label class="form-label">Role</label><select class="form-inp" id="uRole"><option value="admin">Admin</option><option value="superadmin">Super Admin</option><option value="karyawan">Karyawan</option></select></div>
+      <div class="fc"><label class="form-label">Link ke Karyawan (opsional)</label><select class="form-inp" id="uKryId"><option value="">— Tidak dihubungkan —</option></select></div>
+    </div>
+    <div id="alertUser" style="margin-top:12px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-red" onclick="closeM('modalUser')">Batal</button>
+      <button class="btn btn-solid" onclick="saveUser()">💾 Simpan Akun</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL RESET PASSWORD === -->
+<div class="modal" id="modalReset">
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-title">🔐 Reset Password</div>
+    <input type="hidden" id="resetUserId">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Ganti password untuk: <strong id="resetUserName"></strong></p>
+    <div class="fc">
+      <label class="form-label">Password Baru *</label>
+      <input type="password" class="form-inp" id="resetPass" placeholder="min. 6 karakter">
+    </div>
+    <div id="alertReset" style="margin-top:10px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-red" onclick="closeM('modalReset')">Batal</button>
+      <button class="btn btn-solid" onclick="doReset()">🔐 Reset Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI HAPUS ABSENSI -->
+<div class="modal" id="modalHapusAbsen">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-title">🗑️ Hapus Absensi</div>
+    <input type="hidden" id="hapusAbsenId">
+    <p style="font-size:14px;color:var(--text2);margin-bottom:8px">Anda akan menghapus data absensi:</p>
+    <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;margin-bottom:18px;border:1px solid var(--border)">
+      <div style="font-weight:700;font-size:15px" id="hapusAbsenNama">—</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px" id="hapusAbsenInfo">—</div>
+    </div>
+    <p style="font-size:12px;color:#f54b4b;margin-bottom:18px">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
+    <div class="modal-footer">
+      <button class="btn btn-blue" onclick="closeM('modalHapusAbsen')">Batal</button>
+      <button class="btn btn-red btn-solid" style="background:#f54b4b;color:#fff;border:none" onclick="konfirmasiHapusAbsen()">🗑️ Ya, Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO VIEWER -->
+<div class="photo-modal" id="photoModal" onclick="this.classList.remove('show')">
+  <button class="pm-close">✕</button>
+  <img id="photoModalImg" src="" alt="">
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('token');
+let cu = JSON.parse(localStorage.getItem('cu') || '{}');
+let allKry = [], allDept = [], allJab = [];
+let sidebarOpen = window.innerWidth > 768;
+
+// === HELPERS ROLE ===
+function isAdmin() { return cu.role && cu.role !== 'karyawan'; }
+function isKaryawan() { return cu.role === 'karyawan'; }
+
+// === SIDEBAR TOGGLE ===
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const main = document.getElementById('main');
+  const overlay = document.getElementById('sidebarOverlay');
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    sb.classList.toggle('mobile-open');
+    overlay.classList.toggle('show');
+  } else {
+    sidebarOpen = !sidebarOpen;
+    sb.classList.toggle('collapsed', !sidebarOpen);
+    main.classList.toggle('expanded', !sidebarOpen);
+  }
+}
+
+window.addEventListener('resize', () => {
+  const isMobile = window.innerWidth <= 768;
+  const sb = document.getElementById('sidebar');
+  const main = document.getElementById('main');
+  if (!isMobile) {
+    sb.classList.remove('mobile-open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+    if (sidebarOpen) { sb.classList.remove('collapsed'); main.classList.remove('expanded'); }
+  }
+});
+
+// === CLOCK + DATE ===
+function tick() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('id-ID');
+  const d = now.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+  document.getElementById('clockEl').textContent = t;
+  document.getElementById('dateEl').textContent = d;
+  const dFull = now.toLocaleDateString('id-ID', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  ['ct1','ct2'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=t; });
+  ['cd1','cd2'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=dFull; });
+}
+setInterval(tick, 1000); tick();
+
+// === AUTH ===
+async function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  if (!username || !password) return showA('loginAlert','Isi semua field','error');
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data = await res.json();
+    if (data.success) {
+      token = data.token; cu = data.user;
+      localStorage.setItem('token', token);
+      localStorage.setItem('cu', JSON.stringify(cu));
+      startApp();
+    } else {
+      showA('loginAlert', data.message || 'Login gagal', 'error');
+    }
+  } catch(e) { showA('loginAlert','Tidak dapat terhubung ke server','error'); }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginPage').style.display !== 'none') doLogin();
+});
+
+function startApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  // Set info user di sidebar atas
+  const av = (cu.username||'?')[0].toUpperCase();
+  document.getElementById('sidebarAv').textContent = av;
+  document.getElementById('sidebarName').textContent = cu.nama_karyawan || cu.username;
+  document.getElementById('sidebarRoleLbl').textContent = cu.role;
+  const badge = document.getElementById('sidebarBadge');
+  badge.textContent = cu.role.toUpperCase();
+  badge.className = 'badge-role ' + cu.role;
+
+  if (isKaryawan()) {
+    // Karyawan: tampilkan menu karyawan saja
+    document.getElementById('navAdmin').classList.add('hidden');
+    document.getElementById('navKaryawan').classList.remove('hidden');
+    // Sembunyikan kolom aksi & fitur admin
+    document.querySelectorAll('.admin-col').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.admin-field').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.admin-tab').forEach(el => el.classList.add('hidden'));
+    loadMaster().then(() => nav('absensi'));
+  } else {
+    // Admin/Manager: tampilkan menu penuh
+    document.getElementById('navAdmin').classList.remove('hidden');
+    document.getElementById('navKaryawan').classList.add('hidden');
+    document.querySelectorAll('.admin-only').forEach(el => {
+      el.style.display = (cu.role === 'karyawan') ? 'none' : '';
+    });
+    document.querySelectorAll('.admin-field').forEach(el => el.classList.remove('hidden'));
+    document.querySelectorAll('.admin-tab').forEach(el => el.classList.remove('hidden'));
+    loadMaster().then(() => nav('dashboard'));
+  }
+}
+
+function doLogout() { localStorage.clear(); location.reload(); }
+
+// === MASTER DATA ===
+async function loadMaster() {
+  const [kr, dr, jr] = await Promise.all([apiFetch('/api/karyawan'), apiFetch('/api/departemen'), apiFetch('/api/jabatan')]);
+  allKry = kr.data || []; allDept = dr.data || []; allJab = jr.data || [];
+  populateSels();
+  setKaryawanBanners();
+}
+
+function setKaryawanBanners() {
+  // Jika karyawan biasa: cari data karyawan berdasarkan karyawan_id yang ada di cu
+  if (isKaryawan() && cu.karyawan_id) {
+    const k = allKry.find(x => x.id == cu.karyawan_id);
+    if (k) {
+      const av = k.nama?.[0]?.toUpperCase() || '?';
+      // Update sidebar
+      document.getElementById('sidebarName').textContent = k.nama;
+      document.getElementById('sidebarAv').textContent = av;
+      // Banner absen masuk
+      document.getElementById('avMasuk').textContent = av;
+      document.getElementById('namaMasuk').textContent = k.nama;
+      document.getElementById('nipMasuk').textContent = k.nip || '—';
+      // Banner absen keluar
+      document.getElementById('avKeluar').textContent = av;
+      document.getElementById('namaKeluar').textContent = k.nama;
+      document.getElementById('nipKeluar').textContent = k.nip || '—';
+    }
+  } else if (isAdmin()) {
+    // Admin: tampilkan pilih karyawan
+    document.getElementById('pilihKryMasukWrap')?.classList.remove('hidden');
+    document.getElementById('pilihKryKeluarWrap')?.classList.remove('hidden');
+    // Reset banner ke kosong sampai dipilih
+    document.getElementById('namaMasuk').textContent = '— Pilih karyawan di bawah —';
+    document.getElementById('nipMasuk').textContent = '';
+    document.getElementById('namaKeluar').textContent = '— Pilih karyawan di bawah —';
+    document.getElementById('nipKeluar').textContent = '';
+  }
+}
+
+function onKryMasukChange() {
+  const id = document.getElementById('aMasukKry').value;
+  const k = allKry.find(x => x.id == id);
+  if (k) {
+    document.getElementById('avMasuk').textContent = k.nama?.[0]?.toUpperCase()||'?';
+    document.getElementById('namaMasuk').textContent = k.nama;
+    document.getElementById('nipMasuk').textContent = k.nip||'—';
+  } else {
+    document.getElementById('avMasuk').textContent = '?';
+    document.getElementById('namaMasuk').textContent = '— Pilih karyawan di bawah —';
+    document.getElementById('nipMasuk').textContent = '';
+  }
+}
+
+function onKryKeluarChange() {
+  const id = document.getElementById('aKeluarKry').value;
+  const k = allKry.find(x => x.id == id);
+  if (k) {
+    document.getElementById('avKeluar').textContent = k.nama?.[0]?.toUpperCase()||'?';
+    document.getElementById('namaKeluar').textContent = k.nama;
+    document.getElementById('nipKeluar').textContent = k.nip||'—';
+  } else {
+    document.getElementById('avKeluar').textContent = '?';
+    document.getElementById('namaKeluar').textContent = '— Pilih karyawan di bawah —';
+    document.getElementById('nipKeluar').textContent = '';
+  }
+}
+
+function populateSels() {
+  ['aMasukKry','aKeluarKry','mKry','uKryId'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    const isUser = id === 'uKryId';
+    el.innerHTML = `<option value="">${isUser ? '— Tidak dihubungkan —' : '— Pilih Karyawan —'}</option>`;
+    (isUser ? allKry : allKry.filter(k => k.status === 'aktif')).forEach(k => {
+      el.innerHTML += `<option value="${k.id}">${k.nama} (${k.nip})</option>`;
+    });
+  });
+  ['fDeptRekap','fDeptKry','kDept'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    const first = el.querySelector('option')?.outerHTML || '<option value="">Semua</option>';
+    el.innerHTML = first;
+    allDept.forEach(d => el.innerHTML += `<option value="${d.id}">${d.nama}</option>`);
+  });
+  const jEl = document.getElementById('kJab');
+  if (jEl) { jEl.innerHTML = '<option value="">Pilih Jabatan</option>'; allJab.forEach(j => jEl.innerHTML += `<option value="${j.id}">${j.nama}</option>`); }
+  document.getElementById('kDept')?.addEventListener('change', function() {
+    const jEl = document.getElementById('kJab');
+    jEl.innerHTML = '<option value="">Pilih Jabatan</option>';
+    allJab.filter(j => !this.value || j.departemen_id == this.value).forEach(j => jEl.innerHTML += `<option value="${j.id}">${j.nama}</option>`);
+  });
+}
+
+// === NAVIGATION ===
+function nav(name) {
+  document.querySelectorAll('[id^="page"]').forEach(el => el.classList.add('hidden'));
+  const pg = document.getElementById(`page${name[0].toUpperCase()+name.slice(1)}`);
+  if (pg) pg.classList.remove('hidden');
+  // Update active nav pada menu yang aktif
+  const activeNav = isKaryawan() ? document.getElementById('navKaryawan') : document.getElementById('navAdmin');
+  activeNav.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  activeNav.querySelector(`.nav-item[onclick*="'${name}'"]`)?.classList.add('active');
+  const titles = {dashboard:'📊 Dashboard',absensi:'✅ Absensi',rekap:'📋 Rekap Absensi',karyawan:'👥 Data Karyawan',departemen:'🏗️ Departemen',users:'🔑 Akun Pengguna',laporan:'📈 Laporan Bulanan'};
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+  const loaders = {dashboard:loadDashboard, rekap:loadRekap, karyawan:loadKaryawan, departemen:loadDepartemen, users:loadUsers, laporan:loadLaporan};
+  if (loaders[name]) loaders[name]();
+  if (name === 'absensi') document.getElementById('mTgl').value = new Date().toISOString().split('T')[0];
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('mobile-open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+}
+
+function tabAbsen(tab, btn) {
+  ['masuk','keluar','manual'].forEach(t => document.getElementById(`absen${t[0].toUpperCase()+t.slice(1)}`).classList.add('hidden'));
+  document.getElementById(`absen${tab[0].toUpperCase()+tab.slice(1)}`).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// === API HELPER ===
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(API + url, { ...opts, headers: { 'Authorization': `Bearer ${token}`, ...(opts.headers||{}) } });
+  return res.json();
+}
+
+// === DASHBOARD ===
+async function loadDashboard() {
+  const data = await apiFetch('/api/absensi/dashboard/stats');
+  if (!data.success) return;
+  const { totalKaryawan, hadirHariIni, terlambatHariIni, alphaBulanIni, tren7Hari } = data.data;
+  document.getElementById('sTotal').textContent = totalKaryawan;
+  document.getElementById('sHadir').textContent = hadirHariIni;
+  document.getElementById('sTerlambat').textContent = terlambatHariIni;
+  document.getElementById('sAlpha').textContent = alphaBulanIni;
+  const pct = totalKaryawan ? Math.round(hadirHariIni/totalKaryawan*100) : 0;
+  document.getElementById('sHadirPct').textContent = `${pct}% dari total karyawan`;
+
+  const maxV = Math.max(...tren7Hari.map(d=>d.hadir), 1);
+  document.getElementById('chartBars').innerHTML = tren7Hari.map(d=>`
+    <div class="cb-wrap">
+      <div class="cb-val">${d.hadir}</div>
+      <div class="cb" style="height:${Math.max(d.hadir/maxV*100,4)}%"></div>
+      <div class="cb-lbl">${d.label}</div>
+    </div>`).join('');
+
+  const today = await apiFetch('/api/absensi/hari-ini');
+  const tbody = document.getElementById('dashBody');
+  if (!today.data?.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text3)">Belum ada absensi hari ini</td></tr>`; return; }
+  tbody.innerHTML = today.data.map(a=>`
+    <tr>
+      <td><div class="av-cell"><div class="av-sm">${a.nama?.[0]||'?'}</div><div><div class="av-name">${a.nama}</div><div class="av-sub">${a.nip}</div></div></div></td>
+      <td class="mono" style="font-size:12.5px">${a.jam_masuk||'—'}</td>
+      <td class="mono" style="font-size:12.5px">${a.jam_keluar||'—'}</td>
+      <td><span class="badge badge-${a.status}">${a.status}</span></td>
+      <td>${a.foto_masuk?`<img src="${a.foto_masuk}" class="ft" onclick="showPhoto('${a.foto_masuk}')">`:'<div class="no-ft">📷</div>'}</td>
+      <td class="admin-col">${isAdmin() ? `<button class="btn btn-red btn-sm" onclick="bukaHapusAbsen(${a.id},'${a.nama}','${a.tanggal||'hari ini'}')">🗑️ Hapus</button>` : ''}</td>
+    </tr>`).join('');
+}
+
+// === HAPUS ABSENSI (admin/manager) ===
+function bukaHapusAbsen(id, nama, info) {
+  document.getElementById('hapusAbsenId').value = id;
+  document.getElementById('hapusAbsenNama').textContent = nama;
+  document.getElementById('hapusAbsenInfo').textContent = `Tanggal: ${info}`;
+  document.getElementById('modalHapusAbsen').classList.add('show');
+}
+
+async function konfirmasiHapusAbsen() {
+  const id = document.getElementById('hapusAbsenId').value;
+  try {
+    const data = await apiFetch(`/api/absensi/${id}`, {method:'DELETE'});
+    closeM('modalHapusAbsen');
+    if (data.success) {
+      loadDashboard();
+    } else {
+      alert(data.message || 'Gagal menghapus absensi');
+    }
+  } catch(e) {
+    alert('Terjadi kesalahan saat menghapus');
+  }
+}
+
+// === ABSENSI ===
+function previewFoto(inputId, prevId, dropId) {
+  const file = document.getElementById(inputId).files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const drop = document.getElementById(dropId);
+    const prev = document.getElementById(prevId);
+    prev.src = e.target.result; prev.style.display = 'block';
+    drop.querySelector('.drop-icon').style.display = 'none';
+    drop.querySelector('p').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitAbsen(type) {
+  const isMasuk = type === 'masuk';
+  let kryId;
+  if (isKaryawan()) {
+    kryId = cu.karyawan_id;
+    if (!kryId) return showA(isMasuk?'alertMasuk':'alertKeluar', 'Akun Anda belum terhubung ke data karyawan. Hubungi admin.', 'error');
+  } else {
+    kryId = document.getElementById(isMasuk ? 'aMasukKry' : 'aKeluarKry').value;
+  }
+  const fotoInput = document.getElementById(isMasuk ? 'fotoMasuk' : 'fotoKeluar');
+  const lokasi = document.getElementById(isMasuk ? 'lokasiMasuk' : 'lokasiKeluar').value;
+  const alertId = isMasuk ? 'alertMasuk' : 'alertKeluar';
+
+  if (!kryId) return showA(alertId, 'Pilih karyawan terlebih dahulu', 'error');
+  if (!fotoInput.files[0]) return showA(alertId, 'Foto wajib diunggah!', 'error');
+
+  const fd = new FormData();
+  fd.append('karyawan_id', kryId);
+  fd.append('foto', fotoInput.files[0]);
+  fd.append('lokasi', lokasi);
+
+  const res = await fetch(`${API}/api/absensi/${type}`, { method:'POST', headers:{'Authorization':`Bearer ${token}`}, body:fd });
+  const data = await res.json();
+  showA(alertId, data.message, data.success ? 'success' : 'error');
+  if (data.success) {
+    fotoInput.value = '';
+    document.getElementById(isMasuk ? 'prevMasuk' : 'prevKeluar').style.display = 'none';
+    const drop = document.getElementById(isMasuk ? 'dropMasuk' : 'dropKeluar');
+    drop.querySelector('.drop-icon').style.display = 'block';
+    drop.querySelector('p').style.display = 'block';
+  }
+}
+
+async function submitManual() {
+  const body = {
+    karyawan_id: document.getElementById('mKry').value,
+    tanggal: document.getElementById('mTgl').value,
+    jam_masuk: document.getElementById('mJamMasuk').value,
+    jam_keluar: document.getElementById('mJamKeluar').value,
+    status: document.getElementById('mStatus').value,
+    keterangan: document.getElementById('mKet').value
+  };
+  if (!body.karyawan_id || !body.tanggal) return showA('alertManual', 'Karyawan dan tanggal wajib diisi', 'error');
+  const data = await apiFetch('/api/absensi/manual', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  showA('alertManual', data.message, data.success ? 'success' : 'error');
+}
+
+// === REKAP ===
+async function loadRekap() {
+  const tgl = document.getElementById('fTgl').value || new Date().toISOString().split('T')[0];
+  const dept = document.getElementById('fDeptRekap').value;
+  const status = document.getElementById('fStatusRekap').value;
+  let url = `/api/absensi?tanggal=${tgl}`;
+  if (dept) url += `&departemen_id=${dept}`;
+  if (status) url += `&status=${status}`;
+  const data = await apiFetch(url);
+  const tbody = document.getElementById('rekapBody');
+  if (!data.data?.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Tidak ada data absensi</td></tr>`; return; }
+  tbody.innerHTML = data.data.map(a=>`
+    <tr>
+      <td><div class="av-cell">${a.foto_profil?`<img src="${a.foto_profil}" class="av-sm">`:`<div class="av-sm">${a.nama?.[0]||'?'}</div>`}<div><div class="av-name">${a.nama}</div><div class="av-sub">${a.nip}</div></div></div></td>
+      <td style="font-size:13px">${a.departemen||'—'}</td>
+      <td class="mono" style="font-size:12px">${a.tanggal}</td>
+      <td class="mono" style="font-size:12px">${a.jam_masuk||'—'}</td>
+      <td class="mono" style="font-size:12px">${a.jam_keluar||'—'}</td>
+      <td><span class="badge badge-${a.status}">${a.status}</span></td>
+      <td>${a.foto_masuk?`<img src="${a.foto_masuk}" class="ft" onclick="showPhoto('${a.foto_masuk}')">`:'<div class="no-ft">📷</div>'}</td>
+      <td>${a.foto_keluar?`<img src="${a.foto_keluar}" class="ft" onclick="showPhoto('${a.foto_keluar}')">`:'<div class="no-ft">📷</div>'}</td>
+      <td><div class="flex-gap">
+        <button class="btn btn-green btn-sm" onclick="verifikasi(${a.id})">${a.diverifikasi?'✅':'✓ Verify'}</button>
+        ${isAdmin()?`<button class="btn btn-red btn-sm" onclick="bukaHapusAbsenRekap(${a.id},'${a.nama}','${a.tanggal}')">🗑️</button>`:''}
+      </div></td>
+    </tr>`).join('');
+  document.getElementById('fTgl').value = tgl;
+}
+
+function bukaHapusAbsenRekap(id, nama, tgl) {
+  document.getElementById('hapusAbsenId').value = id;
+  document.getElementById('hapusAbsenNama').textContent = nama;
+  document.getElementById('hapusAbsenInfo').textContent = `Tanggal: ${tgl}`;
+  document.getElementById('modalHapusAbsen').classList.add('show');
+  // Setelah hapus, reload rekap
+  document.getElementById('modalHapusAbsen').dataset.source = 'rekap';
+}
+
+async function verifikasi(id) {
+  await apiFetch(`/api/absensi/verifikasi/${id}`, {method:'PUT'});
+  loadRekap();
+}
+
+// Override konfirmasi hapus agar bisa reload rekap juga
+const _origKonfirmasiHapus = konfirmasiHapusAbsen;
+konfirmasiHapusAbsen = async function() {
+  const id = document.getElementById('hapusAbsenId').value;
+  const src = document.getElementById('modalHapusAbsen').dataset.source;
+  try {
+    const data = await apiFetch(`/api/absensi/${id}`, {method:'DELETE'});
+    closeM('modalHapusAbsen');
+    document.getElementById('modalHapusAbsen').dataset.source = '';
+    if (data.success) {
+      if (src === 'rekap') loadRekap();
+      else loadDashboard();
+    } else {
+      alert(data.message || 'Gagal menghapus absensi');
+    }
+  } catch(e) { alert('Terjadi kesalahan saat menghapus'); }
+};
+
+// === KARYAWAN ===
+async function loadKaryawan() {
+  const search = document.getElementById('srchKry').value;
+  const dept = document.getElementById('fDeptKry').value;
+  let url = `/api/karyawan?`;
+  if (search) url += `search=${encodeURIComponent(search)}&`;
+  if (dept) url += `departemen_id=${dept}&`;
+  const data = await apiFetch(url);
+  const tbody = document.getElementById('kryBody');
+  if (!data.data?.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Tidak ada data karyawan</td></tr>`; return; }
+  tbody.innerHTML = data.data.map(k=>`
+    <tr>
+      <td><div class="av-cell">${k.foto_profil?`<img src="${k.foto_profil}" class="av-sm">`:`<div class="av-sm">${k.nama?.[0]||'?'}</div>`}<div><div class="av-name">${k.nama}</div><div class="av-sub">${k.email||'—'}</div></div></div></td>
+      <td class="mono" style="font-size:12px">${k.nip}</td>
+      <td style="font-size:13px">${k.departemen_nama||'—'}</td>
+      <td style="font-size:12px">${k.jabatan_nama||'—'}</td>
+      <td style="font-size:12px">${k.telepon||'—'}</td>
+      <td style="font-size:12px">${k.tanggal_masuk||'—'}</td>
+      <td><span class="badge badge-${k.status}">${k.status}</span></td>
+      <td>${k.username ? `<span style="font-size:11px;color:var(--accent2)">✓ ${k.username}</span>` : '<span style="font-size:11px;color:var(--text3)">— belum ada —</span>'}</td>
+      <td class="admin-col">${isAdmin()?`<div class="flex-gap"><button class="btn btn-blue btn-sm" onclick="editKry(${k.id})">✏️</button><button class="btn btn-red btn-sm" onclick="delKry(${k.id})">🗑️</button></div>`:''}</td>
+    </tr>`).join('');
+}
+
+function openKryForm() {
+  document.getElementById('modalKryTitle').textContent = 'Tambah Karyawan Baru';
+  document.getElementById('kryId').value = '';
+  ['kNip','kNama','kEmail','kTelp','kAlamat','kUsername','kPassword'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('kJK').value = 'L';
+  document.getElementById('kSts').value = 'aktif';
+  document.getElementById('modalKry').classList.add('show');
+}
+
+async function editKry(id) {
+  const data = await apiFetch(`/api/karyawan/${id}`);
+  const k = data.data;
+  document.getElementById('modalKryTitle').textContent = 'Edit Data Karyawan';
+  document.getElementById('kryId').value = k.id;
+  document.getElementById('kNip').value = k.nip;
+  document.getElementById('kNama').value = k.nama;
+  document.getElementById('kEmail').value = k.email || '';
+  document.getElementById('kTelp').value = k.telepon || '';
+  document.getElementById('kJK').value = k.jenis_kelamin || 'L';
+  document.getElementById('kTglLhr').value = k.tanggal_lahir || '';
+  document.getElementById('kAlamat').value = k.alamat || '';
+  document.getElementById('kDept').value = k.departemen_id || '';
+  document.getElementById('kJab').value = k.jabatan_id || '';
+  document.getElementById('kTglMsk').value = k.tanggal_masuk || '';
+  document.getElementById('kSts').value = k.status;
+  document.getElementById('kUsername').value = k.username || '';
+  document.getElementById('kPassword').value = '';
+  document.getElementById('modalKry').classList.add('show');
+}
+
+async function saveKry() {
+  const id = document.getElementById('kryId').value;
+  const fd = new FormData();
+  const fields = {nip:'kNip',nama:'kNama',email:'kEmail',telepon:'kTelp',jenis_kelamin:'kJK',tanggal_lahir:'kTglLhr',alamat:'kAlamat',departemen_id:'kDept',jabatan_id:'kJab',tanggal_masuk:'kTglMsk',status:'kSts',username:'kUsername',password:'kPassword'};
+  Object.entries(fields).forEach(([k,v]) => fd.append(k, document.getElementById(v).value));
+  const foto = document.getElementById('kFoto').files[0];
+  if (foto) fd.append('foto_profil', foto);
+  const url = id ? `/api/karyawan/${id}` : '/api/karyawan';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(API+url, {method, headers:{'Authorization':`Bearer ${token}`}, body:fd});
+  const data = await res.json();
+  if (data.success) { closeM('modalKry'); loadKaryawan(); loadMaster(); }
+  else alert(data.message);
+}
+
+async function delKry(id) {
+  if (!confirm('Nonaktifkan karyawan ini?')) return;
+  await apiFetch(`/api/karyawan/${id}`, {method:'DELETE'});
+  loadKaryawan();
+}
+
+// === DEPARTEMEN ===
+async function loadDepartemen() {
+  const data = await apiFetch('/api/departemen');
+  const tbody = document.getElementById('deptBody');
+  if (!data.data?.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text3)">Tidak ada data</td></tr>`; return; }
+  tbody.innerHTML = data.data.map(d=>`
+    <tr>
+      <td class="mono" style="color:var(--accent);font-weight:700">${d.kode}</td>
+      <td style="font-weight:600">${d.nama}</td>
+      <td>${d.jumlah_karyawan} orang</td>
+      <td style="font-size:12px;color:var(--text3)">${d.created_at?.split('T')[0]||'—'}</td>
+      <td><div class="flex-gap"><button class="btn btn-blue btn-sm" onclick="editDept(${d.id},'${d.nama}','${d.kode}')">✏️ Edit</button><button class="btn btn-red btn-sm" onclick="delDept(${d.id})">🗑️</button></div></td>
+    </tr>`).join('');
+}
+
+function openDeptForm() {
+  document.getElementById('modalDeptTitle').textContent = 'Tambah Departemen';
+  document.getElementById('deptId').value = '';
+  document.getElementById('dKode').value = ''; document.getElementById('dNama').value = '';
+  document.getElementById('modalDept').classList.add('show');
+}
+function editDept(id, nama, kode) {
+  document.getElementById('modalDeptTitle').textContent = 'Edit Departemen';
+  document.getElementById('deptId').value = id;
+  document.getElementById('dKode').value = kode; document.getElementById('dNama').value = nama;
+  document.getElementById('modalDept').classList.add('show');
+}
+async function saveDept() {
+  const id = document.getElementById('deptId').value;
+  const body = {nama:document.getElementById('dNama').value, kode:document.getElementById('dKode').value};
+  const data = await apiFetch(id?`/api/departemen/${id}`:'/api/departemen', {method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if (data.success) { closeM('modalDept'); loadDepartemen(); loadMaster(); }
+  else alert(data.message || 'Error');
+}
+async function delDept(id) {
+  if (!confirm('Hapus departemen?')) return;
+  await apiFetch(`/api/departemen/${id}`, {method:'DELETE'});
+  loadDepartemen();
+}
+
+// === USERS ===
+async function loadUsers() {
+  const data = await apiFetch('/api/karyawan/users/list');
+  const tbody = document.getElementById('usersBody');
+  if (!data.data?.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">Tidak ada data</td></tr>`; return; }
+  tbody.innerHTML = data.data.map(u=>`
+    <tr>
+      <td class="mono" style="font-weight:600">${u.username}</td>
+      <td>${u.nama_karyawan||'<span style="color:var(--text3)">— Admin —</span>'}</td>
+      <td class="mono" style="font-size:12px">${u.nip||'—'}</td>
+      <td><span class="badge badge-${u.role}">${u.role}</span></td>
+      <td style="font-size:12px;color:var(--text3)">${u.last_login?u.last_login.split('T')[0]:'Belum pernah'}</td>
+      <td style="font-size:12px;color:var(--text3)">${u.created_at?.split('T')[0]||'—'}</td>
+      <td><button class="btn btn-blue btn-sm" onclick="openReset(${u.id},'${u.username}')">🔐 Reset Pass</button></td>
+    </tr>`).join('');
+}
+
+function openUserForm() {
+  document.getElementById('modalUserTitle').textContent = 'Tambah Akun Pengguna';
+  document.getElementById('userId').value = '';
+  ['uUsername','uPassword'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('uRole').value = 'karyawan';
+  document.getElementById('uKryId').value = '';
+  document.getElementById('alertUser').innerHTML = '';
+  document.getElementById('modalUser').classList.add('show');
+}
+
+async function saveUser() {
+  const username = document.getElementById('uUsername').value.trim();
+  const password = document.getElementById('uPassword').value;
+  const role = document.getElementById('uRole').value;
+  const karyawan_id = document.getElementById('uKryId').value;
+  if (!username || !password) return showA('alertUser', 'Username dan password wajib diisi', 'error');
+  const data = await apiFetch('/api/auth/register', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password,role,karyawan_id:karyawan_id||null})});
+  if (data.success) { closeM('modalUser'); loadUsers(); }
+  else showA('alertUser', data.message || 'Error', 'error');
+}
+
+function openReset(id, username) {
+  document.getElementById('resetUserId').value = id;
+  document.getElementById('resetUserName').textContent = username;
+  document.getElementById('resetPass').value = '';
+  document.getElementById('alertReset').innerHTML = '';
+  document.getElementById('modalReset').classList.add('show');
+}
+
+async function doReset() {
+  const user_id = document.getElementById('resetUserId').value;
+  const new_password = document.getElementById('resetPass').value;
+  if (!new_password || new_password.length < 6) return showA('alertReset','Password minimal 6 karakter','error');
+  const data = await apiFetch('/api/karyawan/users/reset-password', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id,new_password})});
+  showA('alertReset', data.message, data.success ? 'success' : 'error');
+  if (data.success) setTimeout(() => closeM('modalReset'), 1200);
+}
+
+// === LAPORAN ===
+async function loadLaporan() {
+  const bulan = document.getElementById('lBulan').value;
+  const tahun = document.getElementById('lTahun').value;
+  const data = await apiFetch(`/api/laporan/bulanan?bulan=${bulan}&tahun=${tahun}`);
+  const tbody = document.getElementById('laporanBody');
+  if (!data.data?.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Tidak ada data</td></tr>`; return; }
+  tbody.innerHTML = data.data.map(k=>`
+    <tr>
+      <td><div class="av-name">${k.nama}</div><div class="av-sub mono">${k.nip}</div></td>
+      <td style="font-size:13px">${k.departemen||'—'}</td>
+      <td style="color:#22d3a0;font-weight:700">${k.hadir||0}</td>
+      <td style="color:#f5a623;font-weight:700">${k.terlambat||0}</td>
+      <td style="color:#4f8ef7;font-weight:700">${k.izin||0}</td>
+      <td style="color:#a78bfa;font-weight:700">${k.sakit||0}</td>
+      <td style="color:#f54b4b;font-weight:700">${k.alpha||0}</td>
+      <td style="color:#94a3b8;font-weight:700">${k.cuti||0}</td>
+      <td class="mono" style="font-weight:700">${k.total_hadir||0}</td>
+    </tr>`).join('');
+}
+
+// === UTILS ===
+function showA(containerId, msg, type='info') {
+  const el = document.getElementById(containerId); if (!el) return;
+  const icons = {success:'✅', error:'❌', info:'ℹ️'};
+  el.innerHTML = `<div class="alert alert-${type}">${icons[type]} ${msg}</div>`;
+  setTimeout(() => el.innerHTML = '', 4000);
+}
+function closeM(id) { document.getElementById(id).classList.remove('show'); }
+function showPhoto(src) { document.getElementById('photoModalImg').src = src; document.getElementById('photoModal').classList.add('show'); }
+
+// === DEFAULTS ===
+document.getElementById('fTgl').value = new Date().toISOString().split('T')[0];
+const nowM = new Date().toISOString().slice(5,7);
+document.getElementById('lBulan').value = nowM;
+document.getElementById('lTahun').value = new Date().getFullYear();
+
+// === AUTO LOGIN ===
+if (token && cu.username) startApp();
+</script>
+</body>
+</html>
