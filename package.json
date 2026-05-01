@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "npm rebuild better-sqlite3"
+    "build": "npm install --build-from-source"
+  },
+  "engines": {
+    "node": "18.x"
   },
   "dependencies": {
     "better-sqlite3": "^9.4.3",
